@@ -1,25 +1,23 @@
+#ifndef __COMPOSE_LAT_INL_H__
+#define __COMPOSE_LAT_INL_H__
 
 #include <queue>
 #include <unordered_map>
+#include <map>
 #include <limits> 
 #include "src/newfst/compose-lat.h"
 #include "src/newfst/connect-fst.h"
+#include "src/util/stl-util.h"
 
 #include "src/util/namespace-start.h"
 //template<typename Int1, typename Int2 = Int1>
-template<typename Int1, typename Int2>
-struct PairHasher {  // hashing function for pair<int, long long int>
-	size_t operator()(const std::pair<Int1, Int2> &x) const noexcept
-	{ // 7853 was chosen at random from a list of primes.
-		return (size_t)x.first * 7853 + x.second;
-	}
-	PairHasher() { }
-};
 template <typename I>
-void ComposeLattice(Lattice *clat, LatticeComposeItf<I> *fst, Lattice *olat, float scale)
+void ComposeLattice(Lattice *clat, LatticeComposeItf<I> *fst, Lattice *olat, float scale=1.0)
 {
 	typedef std::pair<StateId, I> StatePair;
 	typedef std::unordered_map<StatePair, StateId, PairHasher<StateId, I> > MapType;
+//	typedef std::unordered_map<StatePair, StateId, 
+//			PairHasher<StateId, I>, PairCmp<StateId, I> > MapType;
 	typedef typename MapType::iterator IterType;
 
 	LOG_ASSERT(olat != NULL);
@@ -97,7 +95,7 @@ void ComposeLattice(Lattice *clat, LatticeComposeItf<I> *fst, Lattice *olat, flo
 					next_state = siter->second;
 				}
 
-				// Because state isn,t save final score,so add final score in arc.
+				// Because state isn't save final score,so add final score in arc.
 				bool clat_final = clat->Final(next_state1);
 				float final_score = 0.0;
 				if (clat_final == true)
@@ -114,12 +112,13 @@ void ComposeLattice(Lattice *clat, LatticeComposeItf<I> *fst, Lattice *olat, flo
 				{
 					float am_score = arc1->_w.Value2();
 					float lm_score = arc1->_w.Value1() + final_score * scale;
+					IterType siter = state_map.find(s);
 					olat->AddArc(state_map[s], LatticeArc(arc1->_input,
 								0, next_state, LatticeWeight(lm_score, am_score)));
 				}
 				else
 				{
-					float am_score = arc1->_w.Value2() + lweight.Value2();
+					float am_score = arc1->_w.Value2() + lweight.Value2() * scale;
 					float lm_score = arc1->_w.Value1() + (lweight.Value1() + final_score) * scale;
 					olat->AddArc(state_map[s], LatticeArc(arc1->_input, olabel2,
 							   	next_state, LatticeWeight(lm_score, am_score)));
@@ -131,12 +130,14 @@ void ComposeLattice(Lattice *clat, LatticeComposeItf<I> *fst, Lattice *olat, flo
 }
 
 // instantiate templates
-template void ComposeLattice(Lattice *clat,
-		LatticeComposeItf<unsigned long long int> *fst, Lattice *olat, float scale);
-template void ComposeLattice(Lattice *clat,
-		LatticeComposeItf<long long int> *fst, Lattice *olat, float scale);
-template void ComposeLattice(Lattice *clat,
-		LatticeComposeItf<int> *fst, Lattice *olat, float scale);
-template void ComposeLattice(Lattice *clat,
-		LatticeComposeItf<unsigned int> *fst, Lattice *olat, float scale);
+//template void ComposeLattice(Lattice *clat,
+//		LatticeComposeItf<unsigned long long int> *fst, Lattice *olat, float scale);
+//template void ComposeLattice(Lattice *clat,
+//		LatticeComposeItf<long long int> *fst, Lattice *olat, float scale);
+//template void ComposeLattice<int>(Lattice *clat,
+//		LatticeComposeItf<int> *fst, Lattice *olat, float scale);
+//template void ComposeLattice(Lattice *clat,
+//		LatticeComposeItf<unsigned int> *fst, Lattice *olat, float scale);
 #include "src/util/namespace-end.h"
+
+#endif
